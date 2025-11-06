@@ -9,12 +9,16 @@ public class AppConfiguration
 
 public class AppSettings
 {
+    public string DefaultSourceDirectory { get; set; } = "./Input";
     public string DefaultOutputDirectory { get; set; } = "./Output";
+    public string DefaultSourceFile { get; set; } = "";
+    public string DefaultDestinationFile { get; set; } = "";
     public bool EnableDetailedLogging { get; set; } = true;
     public int MaxFileSizeInMB { get; set; } = 50;
     public List<string> SupportedFileExtensions { get; set; } = new() { ".cs" };
     public string DefaultSplitMode { get; set; } = "PublicPrivate";
     public bool BackupOriginalFile { get; set; } = false;
+    public bool CreateDirectoriesIfNotExist { get; set; } = true;
 }
 
 public class ParsingSettings

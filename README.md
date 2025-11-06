@@ -19,9 +19,19 @@ A .NET 9 console application that reads a C# file containing a single class and 
 Run the application:
 
 ```bash
+# Interactive mode
 dotnet run
+
+# Command line mode
+dotnet run <source-file> <output-directory> [splits] [class-name]
+
+# Examples
+dotnet run MyClass.cs ./Output
+dotnet run MyClass.cs ./Output 3
+dotnet run MyClass.cs ./Output 2 Employee
 ```
 
+### Interactive Mode
 The application will prompt you for:
 
 1. **Input C# file path**: Path to the .cs file containing the class(es) to split
@@ -32,6 +42,13 @@ The application will prompt you for:
 4. **Specific class name** (optional):
    - If specified: Only that class will be split
    - If not specified: All classes in the file will be split
+
+### Command Line Mode
+Use command line arguments for automated processing:
+- `<source-file>`: Path to the C# file to split (required)
+- `<output-directory>`: Directory for output files (required)  
+- `[splits]`: Number of files to split into (optional)
+- `[class-name]`: Specific class to split (optional)
 
 ## Examples
 
@@ -102,11 +119,15 @@ public partial class Person
 The application uses `appsettings.json` for configuration. You can customize:
 
 ### AppSettings
+- `DefaultSourceDirectory`: Default input folder (default: "./Input")
 - `DefaultOutputDirectory`: Default output folder (default: "./Output")
+- `DefaultSourceFile`: Default source file path (default: "")
+- `DefaultDestinationFile`: Default destination file path (default: "")
 - `EnableDetailedLogging`: Show detailed progress messages (default: true)
 - `MaxFileSizeInMB`: Maximum input file size limit (default: 50 MB)
 - `SupportedFileExtensions`: Allowed file extensions (default: [".cs"])
 - `BackupOriginalFile`: Create backup of original file (default: false)
+- `CreateDirectoriesIfNotExist`: Auto-create missing directories (default: true)
 
 ### ParsingSettings
 - `IncludeProperties`: Include properties in splitting (default: true)

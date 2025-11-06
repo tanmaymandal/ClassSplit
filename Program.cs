@@ -24,7 +24,7 @@ class Program
         try
         {
             Console.WriteLine("Step 1: Getting user input...");
-            var options = GetUserInput();
+            var options = args.Length > 0 ? ParseCommandLineArgs(args) : GetUserInput();
             Console.WriteLine("✓ User input collected successfully");
             
             Console.WriteLine("Step 2: Parsing C# file...");
@@ -52,6 +52,35 @@ class Program
         }
     }
 
+    private static SplitOptions ParseCommandLineArgs(string[] args)
+    {
+        if (args.Length < 2)
+        {
+            Console.WriteLine("Usage: SplitCS <source-file> <output-directory> [splits] [class-name]");
+            Console.WriteLine("Example: SplitCS MyClass.cs ./Output 3 MyClass");
+            throw new ArgumentException("Insufficient command line arguments");
+        }
+
+        var inputPath = args[0];
+        var outputDirectory = args[1];
+        
+        int? numberOfSplits = null;
+        if (args.Length > 2 && int.TryParse(args[2], out int splits) && splits > 0)
+        {
+            numberOfSplits = splits;
+        }
+
+        string? specificClassName = null;
+        if (args.Length > 3 && !string.IsNullOrWhiteSpace(args[3]))
+        {
+            specificClassName = args[3];
+        }
+
+        Console.WriteLine($"  ✓ Command line args: Source='{inputPath}', Output='{outputDirectory}', Splits={numberOfSplits?.ToString() ?? "default"}, Class='{specificClassName ?? "all"}'");
+        
+        return new SplitOptions(inputPath, outputDirectory, numberOfSplits, specificClassName);
+    }
+
     private static void LoadConfiguration()
     {
         var builder = new ConfigurationBuilder()
@@ -71,13 +100,35 @@ class Program
     private static SplitOptions GetUserInput()
     {
         Console.WriteLine("  → Prompting for input file path...");
-        // Get input file path
-        Console.Write("Enter the input C# file path: ");
+        
+        // Show default source directory if configured
+        var defaultSourceDir = _config?.AppSettings.DefaultSourceDirectory;
+        var defaultSourceFile = _config?.AppSettings.DefaultSourceFile;
+        
+        string prompt = "Enter the input C# file path";
+        if (!string.IsNullOrWhiteSpace(defaultSourceFile))
+        {
+            prompt += $" (default: {defaultSourceFile})";
+        }
+        else if (!string.IsNullOrWhiteSpace(defaultSourceDir))
+        {
+            prompt += $" (default directory: {defaultSourceDir})";
+        }
+        
+        Console.Write($"{prompt}: ");
         var inputPath = Console.ReadLine()?.Trim().Trim('"');
         
         if (string.IsNullOrWhiteSpace(inputPath))
         {
-            throw new ArgumentException("Input file path cannot be empty.");
+            if (!string.IsNullOrWhiteSpace(defaultSourceFile))
+            {
+                inputPath = defaultSourceFile;
+                Console.WriteLine($"  ✓ Using default source file: {inputPath}");
+            }
+            else
+            {
+                throw new ArgumentException("Input file path cannot be empty.");
+            }
         }
 
         Console.WriteLine($"  → Checking if file exists: {inputPath}");
@@ -105,15 +156,39 @@ class Program
         Console.WriteLine($"  ✓ File size: {fileSizeInMB:F2} MB");
 
         Console.WriteLine("  → Prompting for output directory...");
-        // Get output directory
-        Console.Write($"Enter the target output folder (default: {_config?.AppSettings.DefaultOutputDirectory ?? "./Output"}): ");
+        
+        // Get output directory with smart defaults
+        var defaultOutputDir = _config?.AppSettings.DefaultOutputDirectory ?? "./Output";
+        var defaultDestFile = _config?.AppSettings.DefaultDestinationFile;
+        
+        string outputPrompt = "Enter the target output folder";
+        if (!string.IsNullOrWhiteSpace(defaultDestFile))
+        {
+            var destDir = Path.GetDirectoryName(defaultDestFile);
+            if (!string.IsNullOrWhiteSpace(destDir))
+            {
+                outputPrompt += $" (default from destination: {destDir})";
+                defaultOutputDir = destDir;
+            }
+        }
+        outputPrompt += $" (default: {defaultOutputDir})";
+        
+        Console.Write($"{outputPrompt}: ");
         var outputDirectory = Console.ReadLine()?.Trim().Trim('"');
         
         if (string.IsNullOrWhiteSpace(outputDirectory))
         {
-            outputDirectory = _config?.AppSettings.DefaultOutputDirectory ?? "./Output";
+            outputDirectory = defaultOutputDir;
         }
         Console.WriteLine($"  ✓ Output directory set: {outputDirectory}");
+        
+        // Create output directory if it doesn't exist and configuration allows it
+        if (_config?.AppSettings.CreateDirectoriesIfNotExist == true && !Directory.Exists(outputDirectory))
+        {
+            Console.WriteLine($"  → Creating output directory: {outputDirectory}");
+            Directory.CreateDirectory(outputDirectory);
+            Console.WriteLine($"  ✓ Output directory created");
+        }
 
         Console.WriteLine("  → Prompting for split options...");
         // Get number of splits (optional)
@@ -152,5 +227,30 @@ class Program
         }
 
         return new SplitOptions(inputPath, outputDirectory, numberOfSplits, specificClassName);
+    }
+
+    private static string ResolvePath(string path, string? defaultDirectory = null)
+    {
+        if (Path.IsPathRooted(path))
+        {
+            return path;
+        }
+
+        if (!string.IsNullOrWhiteSpace(defaultDirectory))
+        {
+            return Path.Combine(defaultDirectory, path);
+        }
+
+        return Path.GetFullPath(path);
+    }
+
+    private static void EnsureDirectoryExists(string directoryPath)
+    {
+        if (!Directory.Exists(directoryPath))
+        {
+            Console.WriteLine($"  → Creating directory: {directoryPath}");
+            Directory.CreateDirectory(directoryPath);
+            Console.WriteLine($"  ✓ Directory created");
+        }
     }
 }
