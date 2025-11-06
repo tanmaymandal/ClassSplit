@@ -7,9 +7,11 @@ A .NET 9 console application that reads a C# file containing a single class and 
 - **Multiple Class Support**: Handles files with multiple classes
 - **Selective Splitting**: Split all classes or specify a particular class
 - **Flexible Splitting**: Split by number of files or by method visibility (public/private)
+- **Configurable Settings**: JSON-based configuration with `appsettings.json`
+- **File Validation**: Automatic file size and extension validation
 - **Preserve Structure**: Maintains namespace, using statements, and class structure
 - **Proper Formatting**: Preserves indentation and method bodies
-- **Interactive CLI**: User-friendly command-line interface
+- **Interactive CLI**: User-friendly command-line interface with smart defaults
 - **Detailed Progress Tracking**: Shows exactly what the application is doing at each step
 
 ## Usage
@@ -95,10 +97,35 @@ public partial class Person
 - **Single class**: `OriginalFileName_Part1.cs`, `OriginalFileName_Part2.cs`
 - **Multiple classes**: `ClassName_Part1.cs`, `ClassName_Part2.cs` (one set per class)
 
+## Configuration
+
+The application uses `appsettings.json` for configuration. You can customize:
+
+### AppSettings
+- `DefaultOutputDirectory`: Default output folder (default: "./Output")
+- `EnableDetailedLogging`: Show detailed progress messages (default: true)
+- `MaxFileSizeInMB`: Maximum input file size limit (default: 50 MB)
+- `SupportedFileExtensions`: Allowed file extensions (default: [".cs"])
+- `BackupOriginalFile`: Create backup of original file (default: false)
+
+### ParsingSettings
+- `IncludeProperties`: Include properties in splitting (default: true)
+- `IncludeConstructors`: Include constructors in splitting (default: true)
+- `IncludeFields`: Include fields in splitting (default: false)
+- `MinimumMethodsPerFile`: Minimum methods per output file (default: 1)
+- `MaximumMethodsPerFile`: Maximum methods per output file (default: 50)
+
+### OutputSettings
+- `IndentSize`: Number of spaces for indentation (default: 4)
+- `UseSpaces`: Use spaces instead of tabs (default: true)
+- `AddGeneratedComment`: Add "generated file" comment (default: true)
+- `PreserveOriginalFormatting`: Keep original code formatting (default: true)
+- `FileNamingPattern`: Output file naming pattern (default: "{ClassName}_Part{PartNumber}.cs")
+
 ## Requirements
 
 - .NET 9.0 or later
-- C# input files with single class definitions
+- C# input files with single or multiple class definitions
 
 ## Building
 
@@ -114,5 +141,7 @@ A sample test file is included in `TestFiles/SampleClass.cs` for testing the app
 
 - `Program.cs` - Main application entry point and user interface
 - `Models.cs` - Data models for method and class information
+- `Configuration.cs` - Configuration models for appsettings.json
 - `ClassParser.cs` - Parses C# files and extracts class/method information
 - `ClassSplitter.cs` - Handles the splitting logic and file generation
+- `appsettings.json` - Application configuration file

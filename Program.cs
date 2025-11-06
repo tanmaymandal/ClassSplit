@@ -1,14 +1,24 @@
-﻿using SplitCS.Models;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using SplitCS.Configuration;
+using SplitCS.Models;
 using SplitCS.Services;
 
 namespace SplitCS;
 
 class Program
 {
+    private static AppConfiguration? _config;
+
     static void Main(string[] args)
     {
+        // Load configuration
+        LoadConfiguration();
+
         Console.WriteLine("=== SplitCS - C# Class Splitter ===");
         Console.WriteLine("Split a C# class into multiple partial class files");
+        Console.WriteLine($"Configuration loaded from appsettings.json");
         Console.WriteLine();
 
         try
@@ -30,7 +40,7 @@ class Program
             Console.WriteLine();
 
             Console.WriteLine("Step 3: Splitting classes into partial files...");
-            var splitter = new ClassSplitter();
+            var splitter = new ClassSplitter(_config);
             splitter.SplitFile(fileInfo, options);
             
             Console.WriteLine("✓ Split completed successfully!");
@@ -39,6 +49,22 @@ class Program
         {
             Console.WriteLine($"Error: {ex.Message}");
             Environment.Exit(1);
+        }
+    }
+
+    private static void LoadConfiguration()
+    {
+        var builder = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
+        var configuration = builder.Build();
+        _config = new AppConfiguration();
+        configuration.Bind(_config);
+
+        if (_config.AppSettings.EnableDetailedLogging)
+        {
+            Console.WriteLine("✓ Detailed logging enabled");
         }
     }
 
@@ -59,16 +85,33 @@ class Program
         {
             throw new FileNotFoundException($"Input file not found: {inputPath}");
         }
-        Console.WriteLine("  ✓ Input file found");
+        Console.WriteLine($"  ✓ Input file found");
+
+        // Validate file extension
+        var fileExtension = Path.GetExtension(inputPath);
+        if (_config?.AppSettings.SupportedFileExtensions?.Contains(fileExtension) == false)
+        {
+            Console.WriteLine($"  ⚠ Warning: File extension '{fileExtension}' is not in supported extensions list");
+        }
+
+        // Check file size
+        var systemFileInfo = new System.IO.FileInfo(inputPath);
+        var fileSizeInMB = systemFileInfo.Length / (1024.0 * 1024.0);
+        var maxSize = _config?.AppSettings.MaxFileSizeInMB ?? 50;
+        if (fileSizeInMB > maxSize)
+        {
+            throw new ArgumentException($"File size ({fileSizeInMB:F2} MB) exceeds maximum allowed size ({maxSize} MB)");
+        }
+        Console.WriteLine($"  ✓ File size: {fileSizeInMB:F2} MB");
 
         Console.WriteLine("  → Prompting for output directory...");
         // Get output directory
-        Console.Write("Enter the target output folder: ");
+        Console.Write($"Enter the target output folder (default: {_config?.AppSettings.DefaultOutputDirectory ?? "./Output"}): ");
         var outputDirectory = Console.ReadLine()?.Trim().Trim('"');
         
         if (string.IsNullOrWhiteSpace(outputDirectory))
         {
-            throw new ArgumentException("Output directory cannot be empty.");
+            outputDirectory = _config?.AppSettings.DefaultOutputDirectory ?? "./Output";
         }
         Console.WriteLine($"  ✓ Output directory set: {outputDirectory}");
 

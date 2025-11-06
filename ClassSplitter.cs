@@ -1,9 +1,17 @@
+using SplitCS.Configuration;
 using SplitCS.Models;
 
 namespace SplitCS.Services;
 
 public class ClassSplitter
 {
+    private readonly AppConfiguration _config;
+
+    public ClassSplitter(AppConfiguration? config = null)
+    {
+        _config = config ?? new AppConfiguration();
+    }
+
     public void SplitFile(Models.FileInfo fileInfo, SplitOptions options)
     {
         Console.WriteLine($"  → Processing {fileInfo.Classes.Count} classes...");
